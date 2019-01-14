@@ -218,6 +218,20 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	/*
 	 * Your code goes here
 	 */
+
+    MessageHdr* msg = (MessageHdr*) malloc(size * sizeof(char));
+    memcpy(msg, data, sizeof(MessageHdr));
+    
+    if (msg->msgType == JOINREQ) {
+        /*  the introducer reply to a JOINREQ with a JOINREP message */
+
+    } else if (msg->msgType == JOINREP) {
+        /* add code to handle join reply message */
+    }
+    else if (msg->msgType == HEARTBEAT) {
+        /* add code to handle heartbeat */
+    }
+    
 }
 
 /**
