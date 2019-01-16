@@ -163,6 +163,9 @@ int MP1Node::finishUpThisNode(){
    /*
     * Your code goes here
     */
+
+    cleanupNodeState();
+    return 0;
 }
 
 /**
