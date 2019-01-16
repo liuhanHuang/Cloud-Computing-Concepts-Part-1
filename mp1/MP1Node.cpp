@@ -163,8 +163,15 @@ int MP1Node::finishUpThisNode(){
    /*
     * Your code goes here
     */
-
-    cleanupNodeState();
+    if (memberNode->inited) {
+        memberNode->inited = false;
+        memberNode->inGroup = false;
+        memberNode->memberList.clear();  
+        memberNode->nnb = 0;
+        memberNode->heartbeat = 0;
+        memberNode->pingCounter = TFAIL;
+        memberNode->timeOutCounter = -1;
+    }
     return 0;
 }
 
@@ -222,16 +229,38 @@ bool MP1Node::recvCallBack(void *env, char *data, int size ) {
 	 * Your code goes here
 	 */
 
-    MessageHdr* msg = (MessageHdr*) malloc(size * sizeof(char));
-    memcpy(msg, data, sizeof(MessageHdr));
-    
-    if (msg->msgType == JOINREQ) {
-        /*  the introducer reply to a JOINREQ with a JOINREP message */
+    MessageHdr* fromMsg = (MessageHdr*) malloc(size * sizeof(char));
+    memcpy(fromMsg, data, sizeof(MessageHdr));
 
-    } else if (msg->msgType == JOINREP) {
+    Address *fromAddress = (Address*)(fromMsg + 1);
+    memcpy(fromAddress, data+sizeof(MessageHdr)+1, sizeof(Address));
+
+    long *fromHeartbeat = (long*)(fromAddress + 1);
+    memcpy(fromHeartbeat, data+sizeof(MessageHdr)+sizeof(long)+1, sizeof(long));
+
+    if (fromMsg->msgType == JOINREQ) {
+        /*  the introducer reply to a JOINREQ with a JOINREP message */
+        size_t msgsize = sizeof(MessageHdr) + sizeof(memberNode->addr.addr) + sizeof(long) + 1;
+        MessageHdr* replyMsg = (MessageHdr *) malloc(msgsize * sizeof(char));
+
+        replyMsg->msgType = JOINREP;
+        memcpy((char *)(replyMsg+1), &memberNode->addr.addr, sizeof(memberNode->addr.addr));
+        memcpy((char *)(replyMsg+1) + 1 + sizeof(memberNode->addr.addr), &memberNode->heartbeat, sizeof(long));
+
+#ifdef DEBUGLOG
+        static char s[1024];
+        sprintf(s, "Sending join_reply message to %d.%d.%d.%d:%d", fromAddress->addr[0], fromAddress->addr[1],
+                             fromAddress->addr[2], fromAddress->addr[3], *(short *)&fromAddress->addr[4]);
+        log->LOG(&memberNode->addr, s);
+#endif
+
+        emulNet->ENsend(&(memberNode->addr), fromAddress, (char *)replyMsg, msgsize);
+        free(replyMsg);
+
+    } else if (fromMsg->msgType == JOINREP) {
         /* add code to handle join reply message */
     }
-    else if (msg->msgType == HEARTBEAT) {
+    else if (fromMsg->msgType == HEARTBEAT) {
         /* add code to handle heartbeat */
     }
     
